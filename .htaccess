@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Never expose framework internals from the project root.
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests|vendor)(/|$) - [F,L,NC]
+    RewriteRule ^(\.env|artisan|composer\.(json|lock)|package(-lock)?\.json|vite\.config\.(js|ts))$ - [F,L,NC]
+
+    # Send the site root to Laravel's front controller.
+    RewriteRule ^$ public/index.php [L]
+
+    # Let existing files/directories pass through unchanged.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route everything else through the public directory.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
