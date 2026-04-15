@@ -1,0 +1,204 @@
+.storefront-home-page {
+    background: #f5f5f6;
+    padding: 2.4rem 0 6rem;
+}
+
+.storefront-home-page__inner {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 2.4rem;
+}
+
+.storefront-home-strip,
+.storefront-home-hero,
+.storefront-home-section {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.storefront-home-strip a,
+.storefront-home-card,
+.storefront-home-hero__slide {
+    display: block;
+}
+
+.storefront-home-strip img {
+    display: block;
+    width: 100%;
+   
+    box-shadow: 0 18px 48px rgba(40, 44, 63, 0.12);
+}
+
+.storefront-home-hero {
+    margin-top: 2rem;
+}
+
+.storefront-home-hero__viewport {
+    overflow: hidden;
+    
+    box-shadow: 0 24px 64px rgba(40, 44, 63, 0.14);
+}
+
+.storefront-home-hero__track {
+    display: flex;
+    transition: transform 0.7s ease;
+}
+
+.storefront-home-hero__slide {
+    min-width: 100%;
+}
+
+.storefront-home-hero__slide img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1920 / 504;
+    object-fit: cover;
+}
+
+.storefront-home-hero__dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.8rem;
+    margin-top: 1.6rem;
+}
+
+.storefront-home-hero__dot {
+    width: 0.9rem;
+    height: 0.9rem;
+    border: 0;
+    border-radius: 999px;
+    background: #c9ccd6;
+    cursor: pointer;
+}
+
+.storefront-home-hero__dot.is-active {
+    background: #3e4152;
+}
+
+.storefront-home-section {
+    margin-top: 4.8rem;
+}
+
+.storefront-home-section__header h2 {
+    color: #1f2940;
+    font-size: 3.2rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.storefront-home-section__grid {
+    display: grid;
+    gap: 1.8rem;
+    margin-top: 2.2rem;
+}
+
+.storefront-home-section__grid--feature {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.storefront-home-section__grid--premium {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.storefront-home-section__grid--category {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.storefront-home-card {
+    overflow: hidden;
+   
+    background: #ffffff;
+    box-shadow: 0 18px 48px rgba(40, 44, 63, 0.12);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.storefront-home-card:hover {
+    transform: translateY(-0.4rem);
+    box-shadow: 0 24px 60px rgba(40, 44, 63, 0.16);
+}
+
+.storefront-home-card img {
+    display: block;
+    width: 100%;
+}
+
+@media (max-width: 1440px) {
+    .storefront-home-section__grid--feature {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .storefront-home-section__grid--premium,
+    .storefront-home-section__grid--category {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1100px) {
+    .storefront-home-page__inner {
+        padding: 0 2rem;
+    }
+
+    .storefront-home-section__header h2 {
+        font-size: 2.8rem;
+    }
+
+    .storefront-home-section__grid--feature {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .storefront-home-section__grid--premium,
+    .storefront-home-section__grid--category {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 780px) {
+    .storefront-home-page {
+        padding-top: 1.6rem;
+    }
+
+    .storefront-home-page__inner {
+        padding: 0 1.6rem;
+    }
+
+    .storefront-home-strip img,
+    .storefront-home-hero__viewport,
+    .storefront-home-card {
+        border-radius: 1.4rem;
+    }
+
+    .storefront-home-section {
+        margin-top: 3.6rem;
+    }
+
+    .storefront-home-section__header h2 {
+        font-size: 2.2rem;
+        letter-spacing: 0.12em;
+    }
+
+    .storefront-home-section__grid--feature,
+    .storefront-home-section__grid--premium,
+    .storefront-home-section__grid--category {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .storefront-home-strip img {
+        aspect-ratio: 5 / 1;
+        object-fit: cover;
+    }
+
+    .storefront-home-hero__slide img {
+        aspect-ratio: 5 / 3.2;
+    }
+
+    .storefront-home-section__grid {
+        gap: 1.2rem;
+    }
+}
