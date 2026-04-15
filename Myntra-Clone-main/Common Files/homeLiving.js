@@ -60,8 +60,7 @@ var anchors_para = [
       function mFunction(value) {
         if (value.matches) { 
           n = anchors_para.length-3;
-        } 
-        else {
+        } else {
           n = anchors_para.length; 
         }
     }
@@ -78,6 +77,7 @@ var anchors_para = [
                 asideDiv.append(heading)
     
             }
+
             if(element.p != undefined){    
                 var para = document.createElement('p');
                 para.setAttribute = ('class', 'text')
@@ -91,6 +91,7 @@ var anchors_para = [
   
 
   var z = document.querySelectorAll('img');
+
   for(let i=0; i<z.length; i++){
       z[i].addEventListener('click', function(){
           window.location.href = "/Home Living Products/home_furnishing.html"

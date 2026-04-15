@@ -59,14 +59,14 @@ var categoryBag = [
       function mFunction(value) {
         if (value.matches) { 
           z = slideImages[1];
-        } 
-        else {
+        } else {
           z = slideImages[0]
         }
     }
   
   z.map(function(ele, index){
     var slideDiv = document.createElement('div');
+
     switch(index){
       case 0 :
         slideDiv.setAttribute('class', 'slide first');
@@ -83,11 +83,13 @@ var categoryBag = [
   })
   
   var images = document.querySelectorAll('img')
+
   for(let i=0; i<images.length; i++){
     images[i].addEventListener('click', function(){
       window.location.href = "../womensdata/women.html"
     })
   }
+
   // LANDING PAGE
   document.getElementById('landingPage').addEventListener('click', function(){
     window.location.href = "../Landingpage/index.html"

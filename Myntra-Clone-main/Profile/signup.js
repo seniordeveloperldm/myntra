@@ -16,9 +16,7 @@ function sigupfun(){
 
     if(name== "" || mob=="" || mail =="" || password ==""){
         alert("fill in the empty fields")
-    }
-
-else {
+    } else {
        var userobj ={
                   name:name,
                   mob:mob,

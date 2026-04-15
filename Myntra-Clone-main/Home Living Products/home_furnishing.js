@@ -447,19 +447,31 @@ var funitureData = [
     document.getElementById('nameSort').addEventListener('change', sortNames);
       function sortNames(){
         var selected = document.getElementById('nameSort').value;
+
         if(selected == 'asc'){
           funitureData.sort(function(a, b){
-              if(a.brand > b.brand) return 1
-              if(a.brand < b.brand) return -1
+              if(a.brand > b.brand) {
+return 1
+}
+
+              if(a.brand < b.brand) {
+return -1
+}
+
               return 0;
           })
           
           displayPage(funitureData); 
-        }
-        else{
+        } else{
           funitureData.sort(function(a, b){
-            if(a.brand > b.brand) return -1
-            if(a.brand < b.brand) return 1
+            if(a.brand > b.brand) {
+return -1
+}
+
+            if(a.brand < b.brand) {
+return 1
+}
+
             return 0
           })
       
@@ -470,13 +482,13 @@ var funitureData = [
       document.getElementById('priceSort').addEventListener('change', sortPrice); 
       function sortPrice(){
         var selected = document.getElementById('priceSort').value;
+
         if(selected == 'lth'){
           funitureData.sort(function(a, b){
             return a.rs-b.rs;
           })
           displayPage(funitureData); 
-        }
-        else{
+        } else{
           funitureData.sort(function(a, b){
             return b.rs - a.rs
           })

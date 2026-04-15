@@ -120,8 +120,7 @@ var cartarr = JSON.parse(localStorage.getItem("BagListObj"))||[];
           var payable_amount = +(localStorage.getItem("amount"));
           var int_promo = document.querySelector("#promo").value;
 
-          if( payable_amount>300 && int_promo=="MYNTRA300")
-           {
+          if( payable_amount>300 && int_promo=="MYNTRA300") {
           amount = amount-300;
           discount =discount+300;
           localStorage.setItem("amount",amount)  ;

@@ -408,19 +408,31 @@ window.addEventListener('load', function(){
   document.getElementById('nameSort').addEventListener('change', sortNames);
     function sortNames(){
       var selected = document.getElementById('nameSort').value;
+
       if(selected == 'asc'){
         womensData.sort(function(a, b){
-            if(a.brand > b.brand) return 1
-            if(a.brand < b.brand) return -1
+            if(a.brand > b.brand) {
+return 1
+}
+
+            if(a.brand < b.brand) {
+return -1
+}
+
             return 0;
         })
         
         displayPage(womensData); 
-      }
-      else{
+      } else{
         womensData.sort(function(a, b){
-          if(a.brand > b.brand) return -1
-          if(a.brand < b.brand) return 1
+          if(a.brand > b.brand) {
+return -1
+}
+
+          if(a.brand < b.brand) {
+return 1
+}
+
           return 0
         })
     
@@ -431,13 +443,13 @@ window.addEventListener('load', function(){
     document.getElementById('priceSort').addEventListener('change', sortPrice); 
     function sortPrice(){
       var selected = document.getElementById('priceSort').value;
+
       if(selected == 'lth'){
         womensData.sort(function(a, b){
           return a.rs-b.rs;
         })
         displayPage(womensData); 
-      }
-      else{
+      } else{
         womensData.sort(function(a, b){
           return b.rs - a.rs
         })

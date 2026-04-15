@@ -242,6 +242,9 @@ export default function StorefrontHeader() {
     const currentUrl = page.url ?? '';
     const [mobileOpen, setMobileOpen] = useState(false);
     const [counts, setCounts] = useState(getCounts);
+    const closeMobileMenu = () => {
+        setMobileOpen(false);
+    };
 
     useEffect(() => {
         const updateCounts = () => {
@@ -256,10 +259,6 @@ export default function StorefrontHeader() {
             window.removeEventListener('storage', updateCounts);
         };
     }, []);
-
-    useEffect(() => {
-        setMobileOpen(false);
-    }, [currentUrl]);
 
     const firstName = auth?.user?.name?.split(' ')[0] ?? 'there';
 
@@ -537,6 +536,7 @@ export default function StorefrontHeader() {
                                 key={item.label}
                                 href={item.href}
                                 className="storefront-mobile-panel__link"
+                                onClick={closeMobileMenu}
                             >
                                 {item.label}
                             </Link>
@@ -553,18 +553,21 @@ export default function StorefrontHeader() {
                             <Link
                                 href={auth?.user ? '/settings/profile' : '/login'}
                                 className="storefront-mobile-panel__action"
+                                onClick={closeMobileMenu}
                             >
                                 Profile
                             </Link>
                             <Link
                                 href="/wishlist"
                                 className="storefront-mobile-panel__action"
+                                onClick={closeMobileMenu}
                             >
                                 Wishlist
                             </Link>
                             <Link
                                 href="/cart"
                                 className="storefront-mobile-panel__action"
+                                onClick={closeMobileMenu}
                             >
                                 Bag
                             </Link>

@@ -5,8 +5,7 @@ document.querySelector("button").addEventListener("click",loginfun)
 function loginfun(){
     var in_mob =document.querySelector("#mob").value;
   
-    for(var a=userdata.length-1; a>=0 ;a--)
-  {
+    for(var a=userdata.length-1; a>=0 ;a--) {
     if (in_mob ==""){
         alert("enter mobile to login")
         break;
@@ -25,8 +24,7 @@ function loginfun(){
              alert("wrong password")
              document.querySelector("#pass").value="";
            }
-      }
-      else if(a==userdata.length-1){
+      } else if(a==userdata.length-1){
         
         alert("you dont have account sign up first")
     

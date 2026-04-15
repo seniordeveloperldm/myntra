@@ -5,9 +5,10 @@ import {
     getBag,
     getCartSummary,
     getCheckoutAddress,
-    saveCheckoutAddress,
-    type CheckoutAddress,
+    saveCheckoutAddress
+    
 } from '@/storefront/storage';
+import type {CheckoutAddress} from '@/storefront/storage';
 
 const fallbackAddress: CheckoutAddress = {
     fullName: 'Sumit Kumar',

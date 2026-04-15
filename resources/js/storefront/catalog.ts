@@ -1,5 +1,5 @@
-import { categoriesArr } from '@/storefront/data/landing-sections';
 import { homeLivingProducts } from '@/storefront/data/home-living-products';
+import { categoriesArr } from '@/storefront/data/landing-sections';
 import { menProducts } from '@/storefront/data/men-products';
 import { womenProducts } from '@/storefront/data/women-products';
 

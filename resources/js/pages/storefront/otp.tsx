@@ -14,6 +14,7 @@ export default function StorefrontOtp() {
     const handleConfirm = () => {
         if (otp.join('').length !== 4) {
             setError('Please enter the 4-digit OTP.');
+
             return;
         }
 

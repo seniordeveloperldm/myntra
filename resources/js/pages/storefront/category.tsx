@@ -2,9 +2,10 @@ import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     getCategoryLabel,
-    getProductsForCategory,
-    type StorefrontProduct,
+    getProductsForCategory
+    
 } from '@/storefront/catalog';
+import type {StorefrontProduct} from '@/storefront/catalog';
 import { addToWishlist, isWishlisted } from '@/storefront/storage';
 
 type SortValue =
@@ -257,6 +258,7 @@ export default function StorefrontCategory({
     const familyCounts = enrichedProducts.reduce<Record<string, number>>(
         (counts, item) => {
             counts[item.family] = (counts[item.family] ?? 0) + 1;
+
             return counts;
         },
         {},
@@ -264,6 +266,7 @@ export default function StorefrontCategory({
     const brandCounts = enrichedProducts.reduce<Record<string, number>>(
         (counts, item) => {
             counts[item.product.brand] = (counts[item.product.brand] ?? 0) + 1;
+
             return counts;
         },
         {},
@@ -271,6 +274,7 @@ export default function StorefrontCategory({
     const colorCounts = enrichedProducts.reduce<Record<string, number>>(
         (counts, item) => {
             counts[item.color.name] = (counts[item.color.name] ?? 0) + 1;
+
             return counts;
         },
         {},
