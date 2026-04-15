@@ -26,13 +26,45 @@ jobs:
           cache: npm
 
       - name: 📦 Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
       - name: 📦 Install Node dependencies
         run: npm ci
 
       - name: 🏗️ Build assets
         run: npm run build
+
+      - name: 📁 Prepare shared hosting package
+        run: |
+          rm -rf .deploy
+          mkdir -p .deploy/site .deploy/site/laravel-app
+
+          rsync -a \
+            --exclude '.deploy/' \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'node_modules/' \
+            --exclude 'tests/' \
+            --exclude 'public/' \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude 'storage/logs/' \
+            --exclude 'storage/framework/cache/' \
+            --exclude 'storage/framework/sessions/' \
+            --exclude 'storage/framework/views/' \
+            ./ .deploy/site/laravel-app/
+
+          mkdir -p \
+            .deploy/site/laravel-app/storage/logs \
+            .deploy/site/laravel-app/storage/framework/cache \
+            .deploy/site/laravel-app/storage/framework/sessions \
+            .deploy/site/laravel-app/storage/framework/views
+
+          rsync -a public/ .deploy/site/
+
+          cp deploy/shared-hosting/root-index.php .deploy/site/index.php
+          cp deploy/shared-hosting/root.htaccess .deploy/site/.htaccess
+          cp deploy/shared-hosting/app.htaccess .deploy/site/laravel-app/.htaccess
 
       - name: 🚀 Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -41,18 +73,6 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
+          local-dir: .deploy/site/
           server-dir: /public_html/
-          dangerous-clean-slate: true
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/node_modules/**
-            **/tests/**
-            **/.editorconfig
-            **/.env
-            **/.env.*
-            **/storage/logs/**
-            **/storage/framework/cache/**
-            **/storage/framework/sessions/**
-            **/storage/framework/views/**
+          dangerous-clean-slate: false
