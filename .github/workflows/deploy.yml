@@ -16,13 +16,13 @@ jobs:
       - name: 🐘 Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.5'
           tools: composer
 
       - name: ⚙️ Install Node
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 24
 
       - name: 📦 Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
