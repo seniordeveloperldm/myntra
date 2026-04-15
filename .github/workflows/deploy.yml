@@ -11,24 +11,25 @@ jobs:
 
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 🐘 Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.5'
+          php-version: '8.2'
           tools: composer
 
       - name: ⚙️ Install Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
+          cache: npm
 
       - name: 📦 Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: 📦 Install dependencies
-        run: npm install
+      - name: 📦 Install Node dependencies
+        run: npm ci
 
       - name: 🏗️ Build assets
         run: npm run build
@@ -42,3 +43,16 @@ jobs:
           port: 21
           server-dir: /public_html/
           dangerous-clean-slate: true
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/tests/**
+            **/.editorconfig
+            **/.env
+            **/.env.*
+            **/storage/logs/**
+            **/storage/framework/cache/**
+            **/storage/framework/sessions/**
+            **/storage/framework/views/**
