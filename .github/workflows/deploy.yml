@@ -52,6 +52,17 @@ jobs:
             --exclude 'storage/framework/cache/' \
             --exclude 'storage/framework/sessions/' \
             --exclude 'storage/framework/views/' \
+            --exclude 'vendor/**/.github/' \
+            --exclude 'vendor/**/docs/' \
+            --exclude 'vendor/**/doc/' \
+            --exclude 'vendor/**/examples/' \
+            --exclude 'vendor/**/Example/' \
+            --exclude 'vendor/**/test/' \
+            --exclude 'vendor/**/tests/' \
+            --exclude 'vendor/**/Tests/' \
+            --exclude 'vendor/**/phpunit.xml*' \
+            --exclude 'vendor/**/README*' \
+            --exclude 'vendor/**/readme*' \
             ./ .deploy/site/laravel-app/
 
           mkdir -p \
