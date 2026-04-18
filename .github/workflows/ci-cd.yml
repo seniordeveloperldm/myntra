@@ -1,0 +1,226 @@
+name: CI / CD
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  PHP_VERSION: '8.4'
+
+jobs:
+  verify:
+    name: Verify build and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer:v2
+          coverage: none
+          extensions: mbstring, pdo_sqlite, sqlite3, fileinfo
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php-${{ env.PHP_VERSION }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ env.PHP_VERSION }}-composer-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Prepare application environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: TypeScript checks
+        run: npm run types:check
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Run application tests
+        run: php artisan test
+
+  style:
+    name: Advisory style checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    if: github.event_name != 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Check PHP code style
+        continue-on-error: true
+        run: composer lint:check
+
+      - name: Check frontend lint rules
+        continue-on-error: true
+        run: npm run lint:check
+
+      - name: Check frontend formatting
+        continue-on-error: true
+        run: npm run format:check
+
+  deploy:
+    name: Deploy to shared hosting
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: verify
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install production PHP dependencies
+        run: composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Prepare shared hosting package
+        run: |
+          rm -rf .deploy
+          mkdir -p .deploy/site .deploy/site/laravel-app
+
+          rsync -a \
+            --exclude '.deploy/' \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.qodo/' \
+            --exclude '.zencoder/' \
+            --exclude '.zenflow/' \
+            --exclude 'Myntra-Clone-main/' \
+            --exclude 'node_modules/' \
+            --exclude 'tests/' \
+            --exclude 'public/' \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude 'storage/app/public/' \
+            --exclude 'storage/logs/' \
+            --exclude 'storage/framework/cache/' \
+            --exclude 'storage/framework/sessions/' \
+            --exclude 'storage/framework/views/' \
+            --exclude 'vendor/**/.github/' \
+            --exclude 'vendor/**/docs/' \
+            --exclude 'vendor/**/doc/' \
+            --exclude 'vendor/**/examples/' \
+            --exclude 'vendor/**/Example/' \
+            --exclude 'vendor/**/test/' \
+            --exclude 'vendor/**/tests/' \
+            --exclude 'vendor/**/Tests/' \
+            --exclude 'vendor/**/phpunit.xml*' \
+            --exclude 'vendor/**/README*' \
+            --exclude 'vendor/**/readme*' \
+            ./ .deploy/site/laravel-app/
+
+          mkdir -p \
+            .deploy/site/laravel-app/storage/app/public \
+            .deploy/site/laravel-app/storage/logs \
+            .deploy/site/laravel-app/storage/framework/cache \
+            .deploy/site/laravel-app/storage/framework/sessions \
+            .deploy/site/laravel-app/storage/framework/views
+
+          rsync -a public/ .deploy/site/
+
+          cp deploy/shared-hosting/root-index.php .deploy/site/index.php
+          cp deploy/shared-hosting/root.htaccess .deploy/site/.htaccess
+          cp deploy/shared-hosting/app.htaccess .deploy/site/laravel-app/.htaccess
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-hosting-package
+          path: .deploy/site/
+          retention-days: 7
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ vars.FTP_PORT || 21 }}
+          local-dir: .deploy/site/
+          server-dir: ${{ vars.FTP_SERVER_DIR || 'public_html/' }}
+          dangerous-clean-slate: false
+          exclude: |
+            **/.env
+            **/.env.*
+            storage/**
+            **/laravel-app/storage/app/public/**
+            **/laravel-app/storage/framework/cache/**
+            **/laravel-app/storage/framework/sessions/**
+            **/laravel-app/storage/framework/views/**
+            **/laravel-app/storage/logs/**
