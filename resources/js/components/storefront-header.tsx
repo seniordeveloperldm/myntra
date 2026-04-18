@@ -1,11 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
-import { getBag, getWishlist, storefrontStorageEvent } from '@/storefront/storage';
-
-const getCounts = () => ({
-    bag: getBag().length,
-    wishlist: getWishlist().length,
-});
+import { useState } from 'react';
 
 type MegaMenuLink = {
     label: string;
@@ -209,22 +203,6 @@ const navItems: readonly NavItem[] = [
         match: '/products/category/men',
         menu: menMegaMenu,
     },
-    {
-        label: 'WOMEN',
-        href: '/products/category/women',
-        slug: 'women',
-        match: '/products/category/women',
-    },
-    { label: 'KIDS', href: '/', slug: 'kids' },
-    {
-        label: 'HOME',
-        href: '/products/category/home-living',
-        slug: 'home',
-        match: '/products/category/home-living',
-    },
-    { label: 'BEAUTY', href: '/', slug: 'beauty' },
-    { label: 'GENZ', href: '/', slug: 'genz' },
-    { label: 'STUDIO', href: '/', slug: 'studio', badge: 'NEW' },
 ] as const;
 
 const profileLinks = [
@@ -239,28 +217,20 @@ export default function StorefrontHeader() {
     const auth = (page.props as {
         auth?: { user?: { name?: string } | null };
     }).auth;
+    const storefront = (page.props as {
+        storefront?: { cartCount?: number; wishlistCount?: number };
+    }).storefront;
     const currentUrl = page.url ?? '';
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [counts, setCounts] = useState(getCounts);
     const closeMobileMenu = () => {
         setMobileOpen(false);
     };
 
-    useEffect(() => {
-        const updateCounts = () => {
-            setCounts(getCounts());
-        };
-
-        window.addEventListener(storefrontStorageEvent, updateCounts);
-        window.addEventListener('storage', updateCounts);
-
-        return () => {
-            window.removeEventListener(storefrontStorageEvent, updateCounts);
-            window.removeEventListener('storage', updateCounts);
-        };
-    }, []);
-
     const firstName = auth?.user?.name?.split(' ')[0] ?? 'there';
+    const counts = {
+        bag: storefront?.cartCount ?? 0,
+        wishlist: storefront?.wishlistCount ?? 0,
+    };
 
     return (
         <>

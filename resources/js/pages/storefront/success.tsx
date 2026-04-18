@@ -1,16 +1,15 @@
 import { Head, Link } from '@inertiajs/react';
-import { useEffect } from 'react';
-import { completeOrder } from '@/storefront/storage';
+import type { StorefrontOrder } from '@/storefront/types';
 
-export default function StorefrontSuccess() {
-    useEffect(() => {
-        completeOrder();
-    }, []);
-
+export default function StorefrontSuccess({
+    order,
+}: {
+    order: StorefrontOrder;
+}) {
     return (
         <>
             <Head>
-                <title>Order Confirmed | Myntra Clone</title>
+                <title>Order Confirmed | Myntra</title>
                 <link rel="stylesheet" href="/css/storefront-success.css" />
             </Head>
 
@@ -21,9 +20,14 @@ export default function StorefrontSuccess() {
                 <h3>
                     Order Confirmed
                     <br />
-                    You will soon receive a mail/SMS regarding confirmation of
-                    your recent order
+                    Order #{order.orderNumber} has been placed successfully.
                 </h3>
+                <p style={{ marginTop: '1rem' }}>
+                    Total paid: <strong>{order.totalAmountLabel}</strong>
+                </p>
+                <p style={{ marginTop: '0.75rem' }}>
+                    Payment: {order.paymentMethod} | Status: {order.paymentStatus}
+                </p>
             </div>
 
             <Link href="/">

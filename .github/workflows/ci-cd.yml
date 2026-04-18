@@ -63,6 +63,9 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
+      - name: Generate Wayfinder files
+        run: php artisan wayfinder:generate
+
       - name: TypeScript checks
         run: npm run types:check
 
@@ -101,6 +104,14 @@ jobs:
 
       - name: Install Node dependencies
         run: npm ci
+
+      - name: Prepare application environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Generate Wayfinder files
+        run: php artisan wayfinder:generate
 
       - name: Check PHP code style
         continue-on-error: true
@@ -145,6 +156,14 @@ jobs:
 
       - name: Install Node dependencies
         run: npm ci
+
+      - name: Prepare application environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Generate Wayfinder files
+        run: php artisan wayfinder:generate
 
       - name: Build frontend assets
         run: npm run build

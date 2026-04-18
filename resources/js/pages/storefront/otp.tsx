@@ -1,7 +1,13 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
-export default function StorefrontOtp() {
+export default function StorefrontOtp({
+    paymentMethod,
+    paymentLabel,
+}: {
+    paymentMethod: string;
+    paymentLabel: string;
+}) {
     const [otp, setOtp] = useState(['', '', '', '']);
     const [error, setError] = useState<string | null>(null);
 
@@ -18,13 +24,16 @@ export default function StorefrontOtp() {
             return;
         }
 
-        window.location.href = '/checkout/success';
+        router.post('/order/place', {
+            payment_method: paymentMethod,
+            otp: otp.join(''),
+        });
     };
 
     return (
         <>
             <Head>
-                <title>OTP Verification | Myntra Clone</title>
+                <title>OTP Verification | Myntra</title>
                 <link rel="stylesheet" href="/css/storefront-otp.css" />
             </Head>
 
@@ -35,7 +44,7 @@ export default function StorefrontOtp() {
                 />
                 <div id="otpline">
                     <h2>Verify with OTP</h2>
-                    <p>Sent to your registered mobile number</p>
+                    <p>Confirming payment via {paymentLabel}</p>
                 </div>
                 <div id="inputDiv">
                     {otp.map((digit, index) => (
@@ -60,7 +69,9 @@ export default function StorefrontOtp() {
                 ) : null}
                 <div id="checkDiv">
                     <h4>
-                        <Link href="/checkout/payment">BACK TO PAYMENT</Link>
+                        <Link href={`/checkout/payment?payment_method=${paymentMethod}`}>
+                            BACK TO PAYMENT
+                        </Link>
                     </h4>
                 </div>
             </div>

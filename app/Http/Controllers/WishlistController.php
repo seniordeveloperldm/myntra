@@ -2,59 +2,91 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
+use App\Support\StorefrontData;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class WishlistController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        return Inertia::render('storefront/wishlist');
+        $wishlistItems = $request->user()
+            ->wishlistItems()
+            ->with('product.brand', 'product.category')
+            ->latest()
+            ->get()
+            ->filter(fn ($item) => $item->product !== null)
+            ->values();
+
+        return Inertia::render('storefront/wishlist', [
+            'wishlist' => $wishlistItems->map(fn ($item) => [
+                'id' => $item->id,
+                'product' => StorefrontData::product($item->product),
+            ])->all(),
+        ]);
     }
 
-    public function add(Request $request)
+    public function add(Request $request): RedirectResponse
     {
-        $productId = $request->input('product_id');
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+        ]);
 
-        // Sample product data
-        $products = [
-            ['id' => 1, 'name' => 'Men Cotton T-Shirt', 'brand' => 'U.S. Polo Assn.', 'price' => 599, 'original_price' => 1299, 'discount' => 54, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/1/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9j.jpg'],
-            ['id' => 2, 'name' => 'Men Casual Shirt', 'brand' => 'Roadster', 'price' => 799, 'original_price' => 1999, 'discount' => 60, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/2/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9k.jpg'],
-            ['id' => 3, 'name' => 'Men Denim Jeans', 'brand' => 'KLOTTHE', 'price' => 1199, 'original_price' => 2999, 'discount' => 60, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/3/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9l.jpg'],
-            ['id' => 4, 'name' => 'Men Formal Trousers', 'brand' => 'Mast & Harbour', 'price' => 999, 'original_price' => 1999, 'discount' => 50, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/4/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9m.jpg'],
-            ['id' => 5, 'name' => 'Men Sports T-Shirt', 'brand' => 'PUMA', 'price' => 1299, 'original_price' => 2499, 'discount' => 48, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/5/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9n.jpg'],
-            ['id' => 6, 'name' => 'Women Casual Dress', 'brand' => 'Anouk', 'price' => 899, 'original_price' => 2499, 'discount' => 64, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/6/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9o.jpg'],
-        ];
+        $product = Product::query()
+            ->whereKey($validated['product_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
 
-        $product = collect($products)->firstWhere('id', $productId);
+        $request->user()->wishlistItems()->firstOrCreate([
+            'product_id' => $product->id,
+        ]);
 
-        if (!$product) {
-            return response()->json(['error' => 'Product not found'], 404);
-        }
-
-        $wishlist = session()->get('wishlist', []);
-
-        if (!isset($wishlist[$productId])) {
-            $wishlist[$productId] = $product;
-        }
-
-        session()->put('wishlist', $wishlist);
-
-        return response()->json(['success' => 'Product added to wishlist']);
+        return back()->with('success', 'Added to wishlist.');
     }
 
-    public function remove(Request $request)
+    public function remove(Request $request): RedirectResponse
     {
-        $productId = $request->input('product_id');
-        $wishlist = session()->get('wishlist', []);
+        $validated = $request->validate([
+            'wishlist_item_id' => ['required', 'integer'],
+        ]);
 
-        if (isset($wishlist[$productId])) {
-            unset($wishlist[$productId]);
+        $request->user()->wishlistItems()->findOrFail($validated['wishlist_item_id'])->delete();
+
+        return back()->with('success', 'Removed from wishlist.');
+    }
+
+    public function moveToCart(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'wishlist_item_id' => ['required', 'integer'],
+        ]);
+
+        $wishlistItem = $request->user()
+            ->wishlistItems()
+            ->with('product')
+            ->findOrFail($validated['wishlist_item_id']);
+        $product = $wishlistItem->product;
+
+        if (! $product) {
+            $wishlistItem->delete();
+
+            return back()->with('error', 'Product is no longer available.');
         }
 
-        session()->put('wishlist', $wishlist);
+        $cart = $request->user()->cart()->firstOrCreate([], []);
+        $cartItem = $cart->items()->firstOrNew([
+            'product_id' => $product->id,
+        ]);
+        $cartItem->quantity = min(($cartItem->exists ? $cartItem->quantity : 0) + 1, max($product->stock, 1));
+        $cartItem->unit_price = $product->price;
+        $cartItem->compare_at_price = $product->compare_at_price;
+        $cartItem->save();
 
-        return response()->json(['success' => 'Product removed from wishlist']);
+        $wishlistItem->delete();
+
+        return back()->with('success', 'Item moved to bag.');
     }
 }

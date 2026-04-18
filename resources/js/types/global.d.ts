@@ -5,6 +5,16 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            flash: {
+                success?: string | null;
+                error?: string | null;
+                createdCategoryId?: number | null;
+                createdCategoryName?: string | null;
+            };
+            storefront: {
+                cartCount: number;
+                wishlistCount: number;
+            };
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

@@ -2,86 +2,115 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cart;
+use App\Models\Product;
+use App\Support\StorefrontData;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CartController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        return Inertia::render('storefront/cart');
+        $cart = $this->cartFor($request);
+        $promoCode = $request->session()->get('promo_code');
+
+        return Inertia::render('storefront/cart', [
+            'cartItems' => StorefrontData::cartItems($cart->items),
+            'summary' => StorefrontData::cartSummary($cart->items, $promoCode),
+            'appliedPromo' => $promoCode,
+        ]);
     }
 
-    public function add(Request $request)
+    public function add(Request $request): RedirectResponse
     {
-        $productId = $request->input('product_id');
-        $quantity = $request->input('quantity', 1);
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'quantity' => ['nullable', 'integer', 'min:1', 'max:10'],
+        ]);
 
-        // Sample product data (same as ProductController)
-        $products = [
-            ['id' => 1, 'name' => 'Men Cotton T-Shirt', 'brand' => 'U.S. Polo Assn.', 'price' => 599, 'original_price' => 1299, 'discount' => 54, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/1/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9j.jpg'],
-            ['id' => 2, 'name' => 'Men Casual Shirt', 'brand' => 'Roadster', 'price' => 799, 'original_price' => 1999, 'discount' => 60, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/2/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9k.jpg'],
-            ['id' => 3, 'name' => 'Men Denim Jeans', 'brand' => 'KLOTTHE', 'price' => 1199, 'original_price' => 2999, 'discount' => 60, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/3/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9l.jpg'],
-            ['id' => 4, 'name' => 'Men Formal Trousers', 'brand' => 'Mast & Harbour', 'price' => 999, 'original_price' => 1999, 'discount' => 50, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/4/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9m.jpg'],
-            ['id' => 5, 'name' => 'Men Sports T-Shirt', 'brand' => 'PUMA', 'price' => 1299, 'original_price' => 2499, 'discount' => 48, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/5/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9n.jpg'],
-            ['id' => 6, 'name' => 'Women Casual Dress', 'brand' => 'Anouk', 'price' => 899, 'original_price' => 2499, 'discount' => 64, 'image' => 'https://assets.myntassets.com/f_webp,w_290,c_limit,fl_progressive,dpr_2/assets/images/productimage/2023/7/6/4b5e7d1c-8b9f-4e2a-9c1b-3d5f6g7h8i9o.jpg'],
-        ];
+        $product = Product::query()
+            ->whereKey($validated['product_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
+        $cart = $this->cartFor($request);
+        $quantity = $validated['quantity'] ?? 1;
 
-        $product = collect($products)->firstWhere('id', $productId);
+        $item = $cart->items()->firstOrNew([
+            'product_id' => $product->id,
+        ]);
+        $item->quantity = min(($item->exists ? $item->quantity : 0) + $quantity, max($product->stock, 1));
+        $item->unit_price = $product->price;
+        $item->compare_at_price = $product->compare_at_price;
+        $item->save();
 
-        if (!$product) {
-            return response()->json(['error' => 'Product not found'], 404);
-        }
-
-        // Get existing cart
-        $cart = session()->get('cart', []);
-
-        // Check if product already in cart
-        if (isset($cart[$productId])) {
-            $cart[$productId]['quantity'] += $quantity;
-        } else {
-            $product['quantity'] = $quantity;
-            $cart[$productId] = $product;
-        }
-
-        // Save cart to session
-        session()->put('cart', $cart);
-
-        return response()->json(['success' => 'Product added to cart']);
+        return back()->with('success', 'Product added to bag.');
     }
 
-    public function update(Request $request)
+    public function update(Request $request): RedirectResponse
     {
-        $productId = $request->input('product_id');
-        $quantity = $request->input('quantity');
+        $validated = $request->validate([
+            'cart_item_id' => ['required', 'integer'],
+            'quantity' => ['required', 'integer', 'min:0', 'max:10'],
+        ]);
 
-        $cart = session()->get('cart', []);
+        $item = $this->cartFor($request)->items()->findOrFail($validated['cart_item_id']);
 
-        if (isset($cart[$productId])) {
-            if ($quantity > 0) {
-                $cart[$productId]['quantity'] = $quantity;
-            } else {
-                unset($cart[$productId]);
-            }
+        if ($validated['quantity'] === 0) {
+            $item->delete();
+
+            return back()->with('success', 'Product removed from bag.');
         }
 
-        session()->put('cart', $cart);
+        $item->update([
+            'quantity' => min($validated['quantity'], max($item->product->stock, 1)),
+            'unit_price' => $item->product->price,
+            'compare_at_price' => $item->product->compare_at_price,
+        ]);
 
-        return response()->json(['success' => 'Cart updated']);
+        return back()->with('success', 'Bag updated.');
     }
 
-    public function remove(Request $request)
+    public function remove(Request $request): RedirectResponse
     {
-        $productId = $request->input('product_id');
-        $cart = session()->get('cart', []);
+        $validated = $request->validate([
+            'cart_item_id' => ['required', 'integer'],
+        ]);
 
-        if (isset($cart[$productId])) {
-            unset($cart[$productId]);
+        $this->cartFor($request)->items()->findOrFail($validated['cart_item_id'])->delete();
+
+        return back()->with('success', 'Product removed from bag.');
+    }
+
+    public function applyPromo(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string'],
+        ]);
+
+        $code = strtoupper(trim($validated['code']));
+        $summary = StorefrontData::cartSummary($this->cartFor($request)->items, $code);
+
+        if ($code !== 'MYNTRA300') {
+            return back()->with('error', 'Try promo code MYNTRA300.');
         }
 
-        session()->put('cart', $cart);
+        if ($summary['promoDiscount'] === 0) {
+            return back()->with('error', 'Promo code works on orders above Rs. 300.');
+        }
 
-        return response()->json(['success' => 'Product removed from cart']);
+        $request->session()->put('promo_code', $code);
+
+        return back()->with('success', 'Promo code applied successfully.');
+    }
+
+    private function cartFor(Request $request): Cart
+    {
+        return $request->user()
+            ->cart()
+            ->firstOrCreate([], [])
+            ->load(['items.product.brand', 'items.product.category']);
     }
 }

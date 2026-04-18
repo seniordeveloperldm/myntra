@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\StorefrontData;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'createdCategoryId' => fn () => $request->session()->get('created_category_id'),
+                'createdCategoryName' => fn () => $request->session()->get('created_category_name'),
+            ],
+            'storefront' => fn () => StorefrontData::sharedState($request->user()),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

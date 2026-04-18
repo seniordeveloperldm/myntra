@@ -1,47 +1,48 @@
-import { Head, Link } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
-import type { StorefrontProduct } from '@/storefront/catalog';
-import {
-    applyPromoCode,
-    formatRupees,
-    getBag,
-    getCartSummary,
-    removeBagItem,
-    storefrontStorageEvent,
-} from '@/storefront/storage';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
+import { formatRupees } from '@/storefront/money';
+import type { StorefrontCartItem, StorefrontSummary } from '@/storefront/types';
 
-export default function StorefrontCart() {
-    const [bag, setBag] = useState<StorefrontProduct[]>(() => getBag());
-    const [promo, setPromo] = useState('');
-    const [message, setMessage] = useState<string | null>(null);
+export default function StorefrontCart({
+    cartItems,
+    summary,
+    appliedPromo,
+}: {
+    cartItems: StorefrontCartItem[];
+    summary: StorefrontSummary;
+    appliedPromo?: string | null;
+}) {
+    const flash = (usePage().props as {
+        flash?: { success?: string | null; error?: string | null };
+    }).flash;
+    const [promo, setPromo] = useState(appliedPromo ?? '');
 
-    useEffect(() => {
-        const refresh = () => {
-            setBag(getBag());
-        };
+    const updateQuantity = (item: StorefrontCartItem, quantity: number) => {
+        router.post(
+            '/cart/update',
+            {
+                cart_item_id: item.id,
+                quantity,
+            },
+            { preserveScroll: true },
+        );
+    };
 
-        window.addEventListener(storefrontStorageEvent, refresh);
-        window.addEventListener('storage', refresh);
-
-        return () => {
-            window.removeEventListener(storefrontStorageEvent, refresh);
-            window.removeEventListener('storage', refresh);
-        };
-    }, []);
-
-    const summary = getCartSummary();
-
-    const handlePromo = () => {
-        const response = applyPromoCode(promo);
-        setMessage(response.message);
-        setPromo('');
-        setBag(getBag());
+    const applyPromo = () => {
+        router.post(
+            '/cart/promo',
+            { code: promo },
+            {
+                preserveScroll: true,
+                onSuccess: () => setPromo(''),
+            },
+        );
     };
 
     return (
         <>
             <Head>
-                <title>Bag | Myntra Clone</title>
+                <title>Bag | Myntra</title>
                 <link
                     rel="shortcut icon"
                     type="image/png"
@@ -82,26 +83,37 @@ export default function StorefrontCart() {
 
             <div id="timerbox">
                 <p>
-                    Sale Starts in <span>3</span> Days
+                    Bag Value <span>{formatRupees(summary.payable)}</span>
                 </p>
             </div>
 
+            {(flash?.success || flash?.error) && (
+                <div className="mx-auto mb-4 max-w-6xl px-4">
+                    <div className="rounded-2xl border border-[#ffd5e1] bg-[#fff6f8] px-4 py-3 text-sm font-medium text-[#d6336c]">
+                        {flash?.success ?? flash?.error}
+                    </div>
+                </div>
+            )}
+
             <div className="con_ord">
                 <div className="container">
-                    {bag.length === 0 ? (
+                    {cartItems.length === 0 ? (
                         <div className="main">
                             <div style={{ width: '100%' }}>
                                 <p>Your bag is empty right now.</p>
-                                <p>Add products from the wishlist or category pages.</p>
+                                <p>Browse more products and build your Myntra cart.</p>
+                                <Link href="/products/category/men">
+                                    Start Shopping
+                                </Link>
                             </div>
                         </div>
                     ) : (
-                        bag.map((product, index) => (
-                            <div key={`${product.id}-${index}`} className="main">
+                        cartItems.map((item) => (
+                            <div key={item.id} className="main">
                                 <div>
                                     <img
-                                        src={product.image}
-                                        alt={product.name}
+                                        src={item.product.image}
+                                        alt={item.product.name}
                                     />
                                 </div>
                                 <div>
@@ -111,30 +123,66 @@ export default function StorefrontCart() {
                                             marginBottom: '-8px',
                                         }}
                                     >
-                                        {product.brand}
+                                        {item.product.brand}
                                     </p>
                                     <p style={{ color: 'gray' }}>
-                                        {product.name}
+                                        {item.product.name}
                                     </p>
                                     <p>
-                                        <span>{product.priceLabel}</span>
+                                        <span>{item.product.priceLabel}</span>
                                         <span
                                             style={{
                                                 color: 'gray',
                                                 textDecoration: 'line-through',
                                             }}
                                         >
-                                            {product.originalPriceLabel}
+                                            {item.product.originalPriceLabel}
                                         </span>
                                     </p>
                                     <span style={{ color: 'red' }}>
-                                        {product.offer}
+                                        {item.product.offer}
                                     </span>
+
+                                    <div className="mt-4 flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                updateQuantity(
+                                                    item,
+                                                    Math.max(item.quantity - 1, 0),
+                                                )
+                                            }
+                                        >
+                                            -
+                                        </button>
+                                        <span>Qty {item.quantity}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                updateQuantity(
+                                                    item,
+                                                    item.quantity + 1,
+                                                )
+                                            }
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+
+                                    <p style={{ marginTop: '12px' }}>
+                                        Item Total: <strong>{item.subtotalLabel}</strong>
+                                    </p>
                                 </div>
                                 <div>
                                     <button
                                         type="button"
-                                        onClick={() => removeBagItem(index)}
+                                        onClick={() =>
+                                            router.post(
+                                                '/cart/remove',
+                                                { cart_item_id: item.id },
+                                                { preserveScroll: true },
+                                            )
+                                        }
                                     >
                                         REMOVE
                                     </button>
@@ -181,13 +229,10 @@ export default function StorefrontCart() {
                             value={promo}
                             onChange={(event) => setPromo(event.target.value)}
                         />
-                        <div className="apply" onClick={handlePromo}>
+                        <div className="apply" onClick={applyPromo}>
                             Apply
                         </div>
                     </div>
-                    {message ? (
-                        <p style={{ color: '#ff3f6c' }}>{message}</p>
-                    ) : null}
                     <Link href="/checkout/address">
                         <div className="makeorder">PLACE ORDER</div>
                     </Link>

@@ -1,25 +1,30 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { formatRupees, getBag, getCartSummary } from '@/storefront/storage';
+import { formatRupees } from '@/storefront/money';
+import type {
+    PaymentMethodOption,
+    StorefrontAddress,
+    StorefrontSummary,
+} from '@/storefront/types';
 
-const paymentModes = [
-    'Cash On Delivery (Cash/Card/UPI)',
-    'Credit/Debit Card',
-    'PhonePe/Google Pay/BHIM UPI',
-    'Paytm/Payzapp/Wallets',
-    'Net Banking',
-    'EMI/Pay Later',
-];
-
-export default function StorefrontPayment() {
-    const [selectedMode, setSelectedMode] = useState(paymentModes[0]);
-    const bag = getBag();
-    const summary = getCartSummary();
+export default function StorefrontPayment({
+    address,
+    summary,
+    paymentMethods,
+}: {
+    address: StorefrontAddress;
+    summary: StorefrontSummary;
+    paymentMethods: PaymentMethodOption[];
+}) {
+    const flash = (usePage().props as {
+        flash?: { success?: string | null; error?: string | null };
+    }).flash;
+    const [selectedMode, setSelectedMode] = useState(paymentMethods[0]?.key ?? 'cod');
 
     return (
         <>
             <Head>
-                <title>Payment | Myntra Clone</title>
+                <title>Payment | Myntra</title>
                 <link rel="stylesheet" href="/css/storefront-payment.css" />
                 <link
                     rel="stylesheet"
@@ -58,46 +63,65 @@ export default function StorefrontPayment() {
                 </div>
             </div>
 
+            {(flash?.success || flash?.error) && (
+                <div className="mx-auto mb-4 max-w-6xl px-4">
+                    <div className="rounded-2xl border border-[#ffd5e1] bg-[#fff6f8] px-4 py-3 text-sm font-medium text-[#d6336c]">
+                        {flash?.success ?? flash?.error}
+                    </div>
+                </div>
+            )}
+
             <div id="cart">
                 <div id="main1">
                     <div>
-                        <h4>Bank Offer</h4>
+                        <h4>Delivery Address</h4>
                         <p>
-                            10% Instant Discount with Standard Chartered Credit
-                            &amp; Debit cards on a min spend of Rs 3,000.
-                        </p>
-                        <p>
-                            Show More{' '}
-                            <i className="fa-solid fa-angle-down"></i>
+                            {address.fullName}, {address.street}, {address.city},{' '}
+                            {address.state} - {address.pinCode}
                         </p>
                     </div>
                     <h4>Choose Payment Mode</h4>
                     <div id="payment">
                         <div id="mode">
-                            {paymentModes.map((mode, index) => (
+                            {paymentMethods.map((mode, index) => (
                                 <div
-                                    key={mode}
+                                    key={mode.key}
                                     id={index === 1 ? 'card' : undefined}
-                                    onClick={() => setSelectedMode(mode)}
+                                    onClick={() => setSelectedMode(mode.key)}
                                     style={{
                                         border:
-                                            selectedMode === mode
+                                            selectedMode === mode.key
                                                 ? '2px solid #ff3f6c'
                                                 : undefined,
                                         cursor: 'pointer',
                                     }}
                                 >
                                     <i className="fa-solid fa-wallet"></i>
-                                    <h5>{mode}</h5>
+                                    <h5>{mode.label}</h5>
                                 </div>
                             ))}
                         </div>
                         <div id="paymentDiv">
-                            <h4>{selectedMode}</h4>
-                            <p>{bag.length} items ready for secure payment.</p>
-                            <Link href="/checkout/otp">
-                                <div id="pay">PAY</div>
-                            </Link>
+                            <h4>
+                                {
+                                    paymentMethods.find(
+                                        (mode) => mode.key === selectedMode,
+                                    )?.label
+                                }
+                            </h4>
+                            <p>
+                                {summary.itemCount} items ready for secure payment.
+                            </p>
+                            <div
+                                id="pay"
+                                onClick={() =>
+                                    router.get('/checkout/otp', {
+                                        payment_method: selectedMode,
+                                    })
+                                }
+                            >
+                                PAY
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,12 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
-import {
-    getCategoryLabel,
-    getProductsForCategory
-    
-} from '@/storefront/catalog';
-import type {StorefrontProduct} from '@/storefront/catalog';
-import { addToWishlist, isWishlisted } from '@/storefront/storage';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { getCategoryLabel } from '@/storefront/catalog';
+import type { StorefrontProduct } from '@/storefront/types';
 
 type SortValue =
     | 'recommended'
@@ -227,21 +222,33 @@ const getStatusText = (index: number) => {
 
 export default function StorefrontCategory({
     category,
+    categoryLabel,
+    products,
+    wishlistIds,
 }: {
     category: string;
+    categoryLabel?: string;
+    products: StorefrontProduct[];
+    wishlistIds: number[];
 }) {
+    const auth = (usePage().props as { auth?: { user?: { id: number } | null } })
+        .auth;
     const [selectedFamilies, setSelectedFamilies] = useState<string[]>([]);
     const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
     const [selectedColors, setSelectedColors] = useState<string[]>([]);
     const [priceBand, setPriceBand] = useState<PriceBand>('all');
     const [sortBy, setSortBy] = useState<SortValue>('recommended');
     const [notice, setNotice] = useState<string | null>(null);
-    const products = getProductsForCategory(category);
+    const [wishlistedIds, setWishlistedIds] = useState<number[]>(wishlistIds);
     const pageMeta = pageMetaMap[category] ?? {
-        title: getCategoryLabel(category),
-        breadcrumb: ['Storefront', getCategoryLabel(category)],
+        title: categoryLabel ?? getCategoryLabel(category),
+        breadcrumb: ['Storefront', categoryLabel ?? getCategoryLabel(category)],
         quickFilters: ['Trending', 'Discount Range', 'Price'],
     };
+
+    useEffect(() => {
+        setWishlistedIds(wishlistIds);
+    }, [wishlistIds]);
 
     const enrichedProducts: EnrichedProduct[] = products.map((product, index) => ({
         product,
@@ -365,8 +372,29 @@ export default function StorefrontCategory({
     };
 
     const handleWishlist = (product: StorefrontProduct) => {
-        const added = addToWishlist(product);
-        showNotice(added ? 'Added to wishlist' : 'Already in wishlist');
+        if (!auth?.user) {
+            router.visit('/login');
+
+            return;
+        }
+
+        if (wishlistedIds.includes(product.id)) {
+            showNotice('Already in wishlist');
+
+            return;
+        }
+
+        router.post(
+            '/wishlist/add',
+            { product_id: product.id },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setWishlistedIds((current) => [...current, product.id]);
+                    showNotice('Added to wishlist');
+                },
+            },
+        );
     };
 
     const toggleFamily = (value: string) => {
@@ -638,7 +666,7 @@ export default function StorefrontCategory({
                             ) : (
                                 <div className="storefront-product-grid">
                                     {filteredProducts.map((item) => {
-                                        const wishlisted = isWishlisted(
+                                        const wishlisted = wishlistedIds.includes(
                                             item.product.id,
                                         );
 
@@ -648,7 +676,7 @@ export default function StorefrontCategory({
                                                 className="storefront-product-card"
                                             >
                                                 <Link
-                                                    href={`/products/${item.product.id}`}
+                                                    href={`/products/${item.product.slug}`}
                                                     className="storefront-product-card__media"
                                                 >
                                                     {item.showAdTag ? (
@@ -670,7 +698,7 @@ export default function StorefrontCategory({
 
                                                 <div className="storefront-product-card__content">
                                                     <Link
-                                                        href={`/products/${item.product.id}`}
+                                                        href={`/products/${item.product.slug}`}
                                                         className="storefront-product-card__title"
                                                     >
                                                         <h3>{item.product.brand}</h3>

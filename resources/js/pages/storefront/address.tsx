@@ -1,41 +1,47 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import {
-    formatRupees,
-    getBag,
-    getCartSummary,
-    getCheckoutAddress,
-    saveCheckoutAddress
-    
-} from '@/storefront/storage';
-import type {CheckoutAddress} from '@/storefront/storage';
+import { formatRupees } from '@/storefront/money';
+import type { StorefrontAddress, StorefrontSummary } from '@/storefront/types';
 
-const fallbackAddress: CheckoutAddress = {
-    fullName: 'Sumit Kumar',
-    mobile: '2314567898',
-    street: 'House No-C12, Old Extension Road, Gandhi Road, Karmik Nagar',
-    city: 'Dhanbad',
-    state: 'Jharkhand',
-    pinCode: '123456',
+const emptyAddress: StorefrontAddress = {
+    fullName: '',
+    mobile: '',
+    street: '',
+    street2: '',
+    city: '',
+    state: '',
+    pinCode: '',
+    country: 'India',
 };
 
-export default function StorefrontAddress() {
-    const [editing, setEditing] = useState(!getCheckoutAddress());
-    const [address, setAddress] = useState<CheckoutAddress>(
-        () => getCheckoutAddress() ?? fallbackAddress,
-    );
-    const bag = getBag();
-    const summary = getCartSummary();
+export default function StorefrontAddress({
+    address,
+    summary,
+}: {
+    address: StorefrontAddress | null;
+    summary: StorefrontSummary;
+}) {
+    const flash = (usePage().props as {
+        flash?: { success?: string | null; error?: string | null };
+    }).flash;
+    const [editing, setEditing] = useState(!address);
+    const [form, setForm] = useState<StorefrontAddress>(address ?? emptyAddress);
+
+    const updateField = (field: keyof StorefrontAddress, value: string) => {
+        setForm((current) => ({
+            ...current,
+            [field]: value,
+        }));
+    };
 
     const handleContinue = () => {
-        saveCheckoutAddress(address);
-        window.location.href = '/checkout/payment';
+        router.post('/checkout/address', form);
     };
 
     return (
         <>
             <Head>
-                <title>Address | Myntra Clone</title>
+                <title>Address | Myntra</title>
                 <link rel="stylesheet" href="/css/storefront-address.css" />
                 <link
                     rel="stylesheet"
@@ -74,39 +80,55 @@ export default function StorefrontAddress() {
                 </div>
             </div>
 
+            {(flash?.success || flash?.error) && (
+                <div className="mx-auto mb-4 max-w-6xl px-4">
+                    <div className="rounded-2xl border border-[#ffd5e1] bg-[#fff6f8] px-4 py-3 text-sm font-medium text-[#d6336c]">
+                        {flash?.success ?? flash?.error}
+                    </div>
+                </div>
+            )}
+
             <div id="cart">
                 <div id="div">
                     <div>
                         <h3>Select Delivery Address</h3>
                         <div onClick={() => setEditing(true)}>
-                            <h5>ADD NEW ADDRESS</h5>
+                            <h5>{address ? 'ADD NEW ADDRESS' : 'SAVE ADDRESS'}</h5>
                         </div>
                     </div>
 
-                    <h5>DEFAULT ADDRESS</h5>
+                    {address ? <h5>DEFAULT ADDRESS</h5> : null}
 
-                    <div>
-                        <div id="name">
-                            <div>
-                                <h4>{address.fullName}</h4>
+                    {address ? (
+                        <div>
+                            <div id="name">
+                                <div>
+                                    <h4>{address.fullName}</h4>
+                                </div>
+                                <div id="home">{address.label ?? 'Home'}</div>
                             </div>
-                            <div id="home">Home</div>
+                            <p>
+                                {address.street}
+                                {address.street2 ? (
+                                    <>
+                                        <br />
+                                        {address.street2}
+                                    </>
+                                ) : null}
+                                <br />
+                                {address.city}, {address.state}, PIN-
+                                {address.pinCode}
+                            </p>
+                            <p>
+                                Mobile No: <b>{address.mobile}</b>
+                            </p>
+                            <p>Pay on Delivery available</p>
+                            <div id="option">
+                                <div onClick={() => setEditing(true)}>EDIT</div>
+                                <div onClick={() => setEditing(true)}>CHANGE</div>
+                            </div>
                         </div>
-                        <p>
-                            {address.street}
-                            <br />
-                            {address.city}, {address.state}, PIN-
-                            {address.pinCode}
-                        </p>
-                        <p>
-                            Mobile No: <b>{address.mobile}</b>
-                        </p>
-                        <p>Pay on Delivery</p>
-                        <div id="option">
-                            <div onClick={() => setEditing(true)}>EDIT</div>
-                            <div onClick={() => setEditing(true)}>CHANGE</div>
-                        </div>
-                    </div>
+                    ) : null}
 
                     {editing ? (
                         <div
@@ -120,62 +142,51 @@ export default function StorefrontAddress() {
                         >
                             <input
                                 placeholder="Full Name"
-                                value={address.fullName}
+                                value={form.fullName}
                                 onChange={(event) =>
-                                    setAddress((current) => ({
-                                        ...current,
-                                        fullName: event.target.value,
-                                    }))
+                                    updateField('fullName', event.target.value)
                                 }
                             />
                             <input
                                 placeholder="Mobile Number"
-                                value={address.mobile}
+                                value={form.mobile}
                                 onChange={(event) =>
-                                    setAddress((current) => ({
-                                        ...current,
-                                        mobile: event.target.value,
-                                    }))
+                                    updateField('mobile', event.target.value)
                                 }
                             />
                             <input
                                 placeholder="Street Address"
-                                value={address.street}
+                                value={form.street}
                                 onChange={(event) =>
-                                    setAddress((current) => ({
-                                        ...current,
-                                        street: event.target.value,
-                                    }))
+                                    updateField('street', event.target.value)
+                                }
+                            />
+                            <input
+                                placeholder="Apartment, suite, landmark"
+                                value={form.street2 ?? ''}
+                                onChange={(event) =>
+                                    updateField('street2', event.target.value)
                                 }
                             />
                             <input
                                 placeholder="City"
-                                value={address.city}
+                                value={form.city}
                                 onChange={(event) =>
-                                    setAddress((current) => ({
-                                        ...current,
-                                        city: event.target.value,
-                                    }))
+                                    updateField('city', event.target.value)
                                 }
                             />
                             <input
                                 placeholder="State"
-                                value={address.state}
+                                value={form.state}
                                 onChange={(event) =>
-                                    setAddress((current) => ({
-                                        ...current,
-                                        state: event.target.value,
-                                    }))
+                                    updateField('state', event.target.value)
                                 }
                             />
                             <input
                                 placeholder="PIN Code"
-                                value={address.pinCode}
+                                value={form.pinCode}
                                 onChange={(event) =>
-                                    setAddress((current) => ({
-                                        ...current,
-                                        pinCode: event.target.value,
-                                    }))
+                                    updateField('pinCode', event.target.value)
                                 }
                             />
                         </div>
@@ -185,10 +196,10 @@ export default function StorefrontAddress() {
                 <div id="checkDiv">
                     <div id="itemDiv">
                         <h5>DELIVERY ESTIMATES</h5>
-                        Delivery Between 7 Apr to 10 Apr
+                        Delivery Between 2 to 4 business days
                         <br />
                         <br />
-                        {bag.length} items | {formatRupees(summary.payable)}
+                        {summary.itemCount} items | {formatRupees(summary.payable)}
                     </div>
                     <div id="place" onClick={handleContinue}>
                         CONTINUE
